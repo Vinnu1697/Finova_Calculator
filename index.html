@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="./manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Finova Pro</title>
@@ -131,11 +132,11 @@ ${$('rInvTable').checked?`<div class="page"><h2>Investment Growth Table</h2><tab
 <p style="margin-top:25px;color:#64748b">Planning estimates only. Actual lender/investment results, fees, taxes and applicable terms may differ.</p>
 <script>
 function pie(id,a,b){let c=document.getElementById(id);if(!c)return;let x=c.getContext('2d'),w=c.width=900,h=c.height=220,cx=450,cy=100,r=65,t=a+b,s=-Math.PI/2,co=['#2563eb','#10b981'];[a,b].forEach((v,i)=>{let q=t?v/t*6.283:0;x.beginPath();x.moveTo(cx,cy);x.arc(cx,cy,r,s,s+q);x.closePath();x.fillStyle=co[i];x.fill();s+=q});x.fillStyle='#475569';x.font='14px Arial';x.fillText('Principal / Invested: '+a.toLocaleString('en-IN'),20,205);x.fillText('Interest / Returns: '+b.toLocaleString('en-IN'),520,205)}
-pie('lp',${summary.loan.total-summary.loan.interest},${summary.loan.interest});pie('ip',${summary.inv.invested},${Math.max(0,summary.inv.returns)});window.onload=()=>setTimeout(()=>window.print(),500);<\/script></body></html>`;
+pie('lp',${summary.loan.total-summary.loan.interest},${summary.loan.interest});pie('ip',${summary.inv.invested},${Math.max(0,summary.inv.returns)});window.onload=()=>setTimeout(()=>window.print(),500);<\/script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script></body></html>`;
  w.document.write(html);w.document.close();
 }
 
 ['loanAmt','loanRate','loanYears','loanMonths','loanStart','method'].forEach(id=>$(id).addEventListener('input',calcLoan));
 ['invAmt','invRate','invYears','invStart','lumpDate','freq','swpAmt','limit'].forEach(id=>$(id).addEventListener('input',calcInv));
 calcLoan();calcInv();
-</script></body></html>
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script></body></html>
