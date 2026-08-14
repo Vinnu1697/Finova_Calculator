@@ -1,3 +1,10 @@
 {
-"name":"Finova Financial Calculator","short_name":"Finova","start_url":"./index.html","display":"standalone","background_color":"#f1f5f9","theme_color":"#0f172a","description":"Offline loan and investment calculator PWA","icons":[]
+  "name": "Finova Pro - Financial Calculator",
+  "short_name": "Finova",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0f172a",
+  "description": "Offline loan, investment and financial planning calculator.",
+  "orientation": "portrait"
 }
