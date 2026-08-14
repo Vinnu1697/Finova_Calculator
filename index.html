@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Finova">
+<link rel="manifest" href="manifest.json">
+<title>Finova — Loan & Investment Calculator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+body{background:#f1f5f9;color:#0f172a;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.card{background:white;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 8px 30px rgba(15,23,42,.06)}
+.navactive{background:#0f172a;color:white}.navitem{transition:.2s}.navitem:hover{background:#e2e8f0}
+input,select{outline:none}.tablewrap{overflow:auto}.tablewrap table{min-width:720px}
+.modal{background:rgba(15,23,42,.55)}
+@media(max-width:768px){.sidebar{display:none}.mobile-nav{display:flex}.content{padding-bottom:90px}.grid-mobile{grid-template-columns:1fr!important}}
+@media(min-width:769px){.mobile-nav{display:none}}
+</style>
+</head>
+<body>
+<div class="min-h-screen flex">
+<aside class="sidebar w-64 bg-white border-r border-slate-200 p-4 fixed h-screen">
+<div class="px-3 py-4 mb-3"><div class="text-2xl font-black text-slate-900">Fin<span class="text-emerald-600">ova</span></div><div class="text-xs text-slate-500">Financial Calculator</div></div>
+<nav class="space-y-1">
+<button data-tab="dashboard" class="navitem navactive w-full text-left px-4 py-3 rounded-xl">▦ Dashboard</button>
+<button data-tab="loan" class="navitem w-full text-left px-4 py-3 rounded-xl">▣ Loan Calculator</button>
+<button data-tab="investment" class="navitem w-full text-left px-4 py-3 rounded-xl">◈ Investment</button>
+<button data-tab="history" class="navitem w-full text-left px-4 py-3 rounded-xl">◫ Reports & History</button>
+<button data-tab="profile" class="navitem w-full text-left px-4 py-3 rounded-xl">◎ Personal Details</button>
+</nav>
+<div class="mt-8 p-4 rounded-2xl bg-slate-900 text-white text-xs">Offline-ready PWA<br><span class="text-emerald-300">Data stays in this device.</span></div>
+</aside>
+
+<main class="content md:ml-64 flex-1 p-4 md:p-8 max-w-[1600px] mx-auto w-full">
+<header class="flex flex-wrap items-center justify-between gap-3 mb-6">
+<div><h1 id="pageTitle" class="text-2xl md:text-3xl font-bold">Dashboard</h1><p id="pageSub" class="text-slate-500">Your financial planning workspace</p></div>
+<div class="flex gap-2"><button onclick="exportData()" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm">Backup</button><button onclick="document.getElementById('importFile').click()" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm">Restore</button><input id="importFile" type="file" accept=".json" hidden onchange="importData(event)"></div>
+</header>
+
+<section id="dashboard" class="tab">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+<div class="card p-5"><div class="text-sm text-slate-500">Saved Reports</div><div id="statReports" class="text-3xl font-bold mt-2">0</div></div>
+<div class="card p-5"><div class="text-sm text-slate-500">Latest Calculation</div><div id="statLatest" class="text-xl font-bold mt-2">—</div></div>
+<div class="card p-5"><div class="text-sm text-slate-500">Storage</div><div class="text-xl font-bold mt-2 text-emerald-600">Local Device</div></div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+<div class="card p-6"><h2 class="font-bold text-lg mb-2">Quick Start</h2><p class="text-slate-500 text-sm mb-4">Calculate a loan or investment, then save a PDF report. Reports can later be searched by name.</p><div class="flex flex-wrap gap-2"><button onclick="showTab('loan')" class="bg-slate-900 text-white px-4 py-3 rounded-xl">Loan Calculator</button><button onclick="showTab('investment')" class="bg-emerald-600 text-white px-4 py-3 rounded-xl">Investment Calculator</button></div></div>
+<div class="card p-6"><h2 class="font-bold text-lg mb-4">Report Controls</h2><div class="space-y-3 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="includePersonal" checked> Include personal details in PDF</label><label class="flex items-center gap-2"><input type="checkbox" id="includeSchedule" checked> Include detailed table</label><label class="flex items-center gap-2"><input type="checkbox" id="includeChart" checked> Include chart</label></div></div>
+</div>
+</section>
+
+<section id="profile" class="tab hidden">
+<div class="card p-6 max-w-3xl"><h2 class="text-xl font-bold mb-1">Personal Details <span class="text-sm font-normal text-slate-400">(Optional)</span></h2><p class="text-sm text-slate-500 mb-5">These details are stored only on this device and can be included in reports.</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<label class="text-sm">Name<input id="pName" class="mt-1 w-full p-3 border rounded-xl" placeholder="Your name"></label>
+<label class="text-sm">Age<input id="pAge" type="number" class="mt-1 w-full p-3 border rounded-xl"></label>
+<label class="text-sm">Phone Number<input id="pPhone" class="mt-1 w-full p-3 border rounded-xl"></label>
+<label class="text-sm md:col-span-2">Address<textarea id="pAddress" class="mt-1 w-full p-3 border rounded-xl" rows="3"></textarea></label>
+</div><button onclick="saveProfile()" class="mt-4 bg-emerald-600 text-white px-5 py-3 rounded-xl">Save Details</button>
+</div>
+</section>
+
+<section id="loan" class="tab hidden">
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+<div class="card p-6 xl:col-span-1"><h2 class="text-xl font-bold">Advanced Loan Calculator</h2><p class="text-sm text-slate-500 mb-5">Reducing-balance or flat-interest loans with dated extra payments.</p>
+<div class="space-y-3">
+<label class="text-sm">Loan Type<select id="loanType" class="mt-1 w-full p-3 border rounded-xl"><option>Home Loan (Mortgage)</option><option>Car Loan</option><option>Personal Loan</option><option>Education Loan</option><option>Gold Loan</option></select></label>
+<label class="text-sm">Interest Method<select id="loanMethod" class="mt-1 w-full p-3 border rounded-xl"><option value="reducing">Reducing Balance</option><option value="flat">Flat Interest</option></select></label>
+<label class="text-sm">Loan Amount<input id="loanAmt" type="number" value="1000000" class="mt-1 w-full p-3 border rounded-xl"></label>
+<label class="text-sm">Annual Interest %<input id="loanRate" type="number" step="0.01" value="8.5" class="mt-1 w-full p-3 border rounded-xl"></label>
+<div class="grid grid-cols-2 gap-3"><label class="text-sm">Years<input id="loanYears" type="number" value="10" class="mt-1 w-full p-3 border rounded-xl"></label><label class="text-sm">Months<input id="loanMonths" type="number" value="0" class="mt-1 w-full p-3 border rounded-xl"></label></div>
+<label class="text-sm">Start Date<input id="loanStart" type="date" class="mt-1 w-full p-3 border rounded-xl"></label>
+<div class="border rounded-xl p-3"><div class="font-semibold text-sm mb-2">Extra Payments</div><div class="grid grid-cols-2 gap-2"><input id="extraDate" type="date" class="p-2 border rounded-lg"><input id="extraAmt" type="number" placeholder="Amount" class="p-2 border rounded-lg"></div><button onclick="addExtra()" class="mt-2 text-sm bg-slate-100 px-3 py-2 rounded-lg">+ Add Payment</button><div id="extraList" class="mt-2 space-y-1 text-xs"></div></div>
+<button onclick="calculateLoan()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold">Calculate Loan</button>
+</div></div>
+<div class="xl:col-span-2 space-y-5">
+<div id="loanResults" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+<div class="card p-5"><div class="flex justify-between items-center mb-3"><h3 class="font-bold">Principal vs Interest</h3><button onclick="saveLoanReport()" class="bg-slate-900 text-white px-3 py-2 rounded-lg text-sm">Save / PDF Report</button></div><canvas id="loanChart" height="110"></canvas></div>
+<div class="card p-5"><h3 class="font-bold mb-3">Amortization Schedule</h3><div class="tablewrap"><table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="p-2 text-left">#</th><th class="p-2">Date</th><th class="p-2">EMI</th><th class="p-2">Principal</th><th class="p-2">Interest</th><th class="p-2">Extra</th><th class="p-2">Balance</th></tr></thead><tbody id="loanTable"></tbody></table></div></div>
+</div></div>
+</section>
+
+<section id="investment" class="tab hidden">
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+<div class="card p-6"><h2 class="text-xl font-bold">Investment Calculator</h2><p class="text-sm text-slate-500 mb-5">SIP, SWP, Lump Sum, PPF/EPF, FD/RD and goal planning.</p>
+<div class="space-y-3">
+<label class="text-sm">Investment Type<select id="invType" class="mt-1 w-full p-3 border rounded-xl" onchange="toggleInv()"><option>SIP</option><option>SWP</option><option>Lump Sum</option><option>PPF / EPF</option><option>FD / RD</option><option>Retirement / Goal</option></select></label>
+<label class="text-sm">Initial / Lump Sum Amount<input id="invInitial" type="number" value="100000" class="mt-1 w-full p-3 border rounded-xl"></label>
+<label class="text-sm">Monthly Contribution / Withdrawal<input id="invMonthly" type="number" value="10000" class="mt-1 w-full p-3 border rounded-xl"></label>
+<label class="text-sm">Expected Annual Return %<input id="invRate" type="number" step=".01" value="12" class="mt-1 w-full p-3 border rounded-xl"></label>
+<label class="text-sm">Inflation %<input id="inflation" type="number" step=".01" value="6" class="mt-1 w-full p-3 border rounded-xl"></label>
+<div class="grid grid-cols-2 gap-3"><label class="text-sm">Years<input id="invYears" type="number" value="10" class="mt-1 w-full p-3 border rounded-xl"></label><label class="text-sm">Months<input id="invMonths" type="number" value="0" class="mt-1 w-full p-3 rounded-xl border"></label></div>
+<label class="text-sm">Start Date<input id="invStart" type="date" class="mt-1 w-full p-3 border rounded-xl"></label>
+<label class="text-sm">Compounding<select id="compound" class="mt-1 w-full p-3 border rounded-xl"><option value="12">Monthly</option><option value="4">Quarterly</option><option value="1">Yearly</option></select></label>
+<button onclick="calculateInvestment()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold">Calculate Investment</button>
+</div></div>
+<div class="xl:col-span-2 space-y-5">
+<div id="invResults" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+<div class="card p-5"><div class="flex justify-between items-center mb-3"><h3 class="font-bold">Investment Growth</h3><button onclick="saveInvestmentReport()" class="bg-slate-900 text-white px-3 py-2 rounded-lg text-sm">Save / PDF Report</button></div><canvas id="invChart" height="110"></canvas></div>
+<div class="card p-5"><h3 class="font-bold mb-3">Growth Table</h3><div class="tablewrap"><table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="p-2">Period</th><th class="p-2">Invested / Withdrawn</th><th class="p-2">Returns</th><th class="p-2">Value</th></tr></thead><tbody id="invTable"></tbody></table></div></div>
+</div></div>
+</section>
+
+<section id="history" class="tab hidden">
+<div class="card p-6"><div class="flex flex-wrap gap-3 justify-between items-center"><div><h2 class="text-xl font-bold">Reports & Historical Data</h2><p class="text-sm text-slate-500">Search saved reports by name.</p></div><input id="historySearch" oninput="renderHistory()" placeholder="Search name..." class="p-3 border rounded-xl w-full md:w-72"></div>
+<div class="tablewrap mt-5"><table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Name</th><th class="p-3">Type</th><th class="p-3">Summary</th><th class="p-3">Actions</th></tr></thead><tbody id="historyTable"></tbody></table></div></div>
+</section>
+</main>
+</div>
+
+<div class="mobile-nav fixed bottom-0 left-0 right-0 bg-white border-t p-2 justify-around z-50">
+<button onclick="showTab('dashboard')" class="text-xs">Dashboard</button><button onclick="showTab('loan')" class="text-xs">Loan</button><button onclick="showTab('investment')" class="text-xs">Invest</button><button onclick="showTab('history')" class="text-xs">Reports</button><button onclick="showTab('profile')" class="text-xs">Profile</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let extras=[], loanData=null, invData=null, loanChart, invChart;
+const money=n=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(n||0);
+const fmtDate=d=>new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+function today(){return new Date().toISOString().slice(0,10)}
+$('loanStart').value=today(); $('invStart').value=today();
+
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+function showTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.add('hidden'));$(id).classList.remove('hidden');document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('navactive',b.dataset.tab===id));let t={dashboard:['Dashboard','Your financial planning workspace'],loan:['Loan Calculator','EMI, amortization and extra-payment planning'],investment:['Investment Calculator','Plan wealth creation and retirement goals'],history:['Reports & History','Search and reopen saved calculations'],profile:['Personal Details','Optional details used in PDF reports']}[id];$('pageTitle').textContent=t[0];$('pageSub').textContent=t[1];}
+function saveProfile(){localStorage.setItem('finova_profile',JSON.stringify({name:$('pName').value,age:$('pAge').value,phone:$('pPhone').value,address:$('pAddress').value}));alert('Details saved on this device.')}
+function loadProfile(){let p=JSON.parse(localStorage.getItem('finova_profile')||'{}');['name','age','phone','address'].forEach(k=>{if($('p'+k[0].toUpperCase()+k.slice(1))) $('p'+k[0].toUpperCase()+k.slice(1)).value=p[k]||''})}
+function addExtra(){let d=$('extraDate').value,a=+$('extraAmt').value;if(!d||!a)return alert('Enter extra-payment date and amount.');extras.push({date:d,amount:a});extras.sort((a,b)=>a.date.localeCompare(b.date));renderExtras()}
+function renderExtras(){$('extraList').innerHTML=extras.map((x,i)=>`<div class="flex justify-between bg-slate-50 p-2 rounded"><span>${fmtDate(x.date)} — ${money(x.amount)}</span><button onclick="extras.splice(${i},1);renderExtras()" class="text-red-600">Remove</button></div>`).join('')}
+function calculateLoan(){
+let P=+$('loanAmt').value,r=+$('loanRate').value/1200,n=(+$('loanYears').value*12)+(+ $('loanMonths').value),start=new Date($('loanStart').value+'T00:00:00'),method=$('loanMethod').value;
+if(P<=0||n<=0)return alert('Enter a valid loan amount and tenure.');
+let emi=method==='reducing'?(r?P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1):P/n):(P/n)+(P*(r*12)*n/12)/n;
+let bal=P,totalInt=0,totalPay=0,rows=[],extraMap={};extras.forEach(e=>extraMap[e.date]=(extraMap[e.date]||0)+e.amount);
+for(let i=1;i<=n&&bal>0.01;i++){let dt=new Date(start);dt.setMonth(start.getMonth()+i);let date=dt.toISOString().slice(0,10), interest=method==='reducing'?bal*r:P*(r*12), principal=method==='reducing'?Math.min(emi-interest,bal):Math.min(P/n,bal), extra=extraMap[date]||0;extra=Math.min(extra,Math.max(0,bal-principal));let pay=principal+interest+extra;bal=Math.max(0,bal-principal-extra);totalInt+=interest;totalPay+=principal+interest+extra;rows.push({i,date,emi:principal+interest,principal,interest,extra,balance:bal});}
+let payoff=rows.at(-1)?.date||$('loanStart').value;
+loanData={type:'Loan',loanType:$('loanType').value,method,P,r,n,emi,totalInt,totalPay,payoff,rows};
+$('loanResults').innerHTML=[['Monthly EMI',money(emi)],['Total Interest',money(totalInt)],['Total Payment',money(totalPay)],['Payoff Date',fmtDate(payoff)]].map(x=>`<div class="card p-4"><div class="text-xs text-slate-500">${x[0]}</div><div class="text-lg font-bold mt-1">${x[1]}</div></div>`).join('');
+$('loanTable').innerHTML=rows.map(x=>`<tr class="border-b"><td class="p-2">${x.i}</td><td class="p-2 text-center">${fmtDate(x.date)}</td><td class="p-2 text-right">${money(x.emi)}</td><td class="p-2 text-right">${money(x.principal)}</td><td class="p-2 text-right">${money(x.interest)}</td><td class="p-2 text-right">${money(x.extra)}</td><td class="p-2 text-right">${money(x.balance)}</td></tr>`).join('');
+if(loanChart)loanChart.destroy();loanChart=new Chart($('loanChart'),{type:'doughnut',data:{labels:['Principal','Interest'],datasets:[{data:[P,totalInt]}]},options:{plugins:{legend:{position:'bottom'}}}});
+}
+function toggleInv(){}
+function calculateInvestment(){
+let type=$('invType').value,initial=+$('invInitial').value,monthly=+$('invMonthly').value,rate=+$('invRate').value/100,years=+$('invYears').value,months=+$('invMonths').value,total=years*12+months,start=new Date($('invStart').value+'T00:00:00'),freq=+$('compound').value;
+if(total<=0)return alert('Enter a valid tenure.');
+let balance=initial, invested=initial, data=[];
+for(let i=1;i<=total;i++){let monthlyRate=Math.pow(1+rate,1/12)-1;if(type==='SWP'){balance=Math.max(0,balance*(1+monthlyRate)-monthly)}else{balance=balance*(1+monthlyRate)+monthly;invested+=monthly} if(i===1||i%12===0||i===total)data.push({period:i,invested,returns:balance-invested,value:balance});}
+if(type==='Lump Sum'){balance=initial*Math.pow(1+rate,total/12);invested=initial;data=[];for(let i=1;i<=total;i++){if(i===1||i%12===0||i===total)data.push({period:i,invested,returns:initial*Math.pow(1+rate,i/12)-initial,value:initial*Math.pow(1+rate,i/12)})}}
+if(type==='FD / RD'){let n=freq;balance=initial*Math.pow(1+rate/n,n*(total/12));invested=initial;data=[];for(let i=1;i<=total;i+=12)data.push({period:i,invested,returns:initial*Math.pow(1+rate/n,n*(i/12))-initial,value:initial*Math.pow(1+rate/n,n*(i/12))})}
+let maturity=balance, returns=type==='SWP'?balance-initial:balance-invested;
+if(type==='Retirement / Goal'){let inflation=+$('inflation').value/100;let goal=initial*Math.pow(1+inflation,total/12);maturity=goal;returns=goal;invested=initial}
+invData={type:'Investment',investmentType:type,initial,monthly,rate,total,maturity,invested,returns,start:start.toISOString(),data};
+$('invResults').innerHTML=[['Invested Amount',money(invested)],['Estimated Returns',money(returns)],['Maturity Value',money(maturity)],['Period',Math.floor(total/12)+'Y '+total%12+'M']].map(x=>`<div class="card p-4"><div class="text-xs text-slate-500">${x[0]}</div><div class="text-lg font-bold mt-1">${x[1]}</div></div>`).join('');
+$('invTable').innerHTML=data.map(x=>`<tr class="border-b"><td class="p-2 text-center">${x.period}</td><td class="p-2 text-right">${money(x.invested)}</td><td class="p-2 text-right">${money(x.returns)}</td><td class="p-2 text-right">${money(x.value)}</td></tr>`).join('');
+if(invChart)invChart.destroy();invChart=new Chart($('invChart'),{type:'line',data:{labels:data.map(x=>'M'+x.period),datasets:[{label:'Value',data:data.map(x=>x.value),tension:.25},{label:'Invested',data:data.map(x=>x.invested),tension:.25}]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>'₹'+Math.round(v).toLocaleString('en-IN')}}}}});
+}
+function reports(){return JSON.parse(localStorage.getItem('finova_reports')||'[]')}
+function saveReport(obj){let arr=reports();obj.id=Date.now();obj.created=new Date().toISOString();obj.name=(JSON.parse(localStorage.getItem('finova_profile')||'{}').name)||'Unnamed';arr.unshift(obj);localStorage.setItem('finova_reports',JSON.stringify(arr));renderHistory();updateStats()}
+function saveLoanReport(){if(!loanData)return alert('Calculate the loan first.');saveReport(loanData);generatePDF(loanData)}
+function saveInvestmentReport(){if(!invData)return alert('Calculate the investment first.');saveReport(invData);generatePDF(invData)}
+function renderHistory(){let q=($('historySearch').value||'').toLowerCase();let arr=reports().filter(x=>(x.name||'').toLowerCase().includes(q));$('historyTable').innerHTML=arr.map(x=>`<tr class="border-b"><td class="p-3">${fmtDate(x.created)}</td><td class="p-3">${x.name}</td><td class="p-3">${x.type} — ${x.loanType||x.investmentType}</td><td class="p-3">${x.type==='Loan'?money(x.P)+' / EMI '+money(x.emi):money(x.maturity)}</td><td class="p-3 flex gap-2"><button onclick='generatePDFById(${x.id})' class="px-3 py-1 bg-slate-900 text-white rounded">PDF</button><button onclick='deleteReport(${x.id})' class="px-3 py-1 bg-red-50 text-red-600 rounded">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="p-6 text-center text-slate-400">No reports found.</td></tr>'}
+function deleteReport(id){localStorage.setItem('finova_reports',JSON.stringify(reports().filter(x=>x.id!==id)));renderHistory();updateStats()}
+function generatePDFById(id){let x=reports().find(r=>r.id===id);if(x)generatePDF(x)}
+function generatePDF(data){
+const {jsPDF}=window.jspdf;let doc=new jsPDF();let y=16;doc.setFontSize(20);doc.text('FINOVA Financial Report',14,y);y+=10;doc.setFontSize(10);doc.text('Generated: '+new Date().toLocaleString('en-IN'),14,y);y+=8;
+let p=JSON.parse(localStorage.getItem('finova_profile')||'{}');if($('includePersonal').checked&&p.name){doc.setFontSize(12);doc.text('Personal Details',14,y);y+=6;doc.setFontSize(10);doc.text(`Name: ${p.name}   Age: ${p.age||'-'}   Phone: ${p.phone||'-'}`,14,y);y+=5;doc.text('Address: '+(p.address||'-'),14,y);y+=8}
+doc.setFontSize(14);doc.text(data.type==='Loan'?'Loan Summary':'Investment Summary',14,y);y+=7;doc.setFontSize(10);
+let lines=data.type==='Loan'?[`Type: ${data.loanType}`,`Method: ${data.method}`,`Loan Amount: ${money(data.P)}`,`Monthly EMI: ${money(data.emi)}`,`Total Interest: ${money(data.totalInt)}`,`Total Payment: ${money(data.totalPay)}`,`Payoff Date: ${fmtDate(data.payoff)}`]:[`Type: ${data.investmentType}`,`Invested Amount: ${money(data.invested)}`,`Estimated Returns: ${money(data.returns)}`,`Maturity Value: ${money(data.maturity)}`];
+lines.forEach(s=>{doc.text(s,14,y);y+=6});y+=4;
+if($('includeSchedule').checked){doc.setFontSize(12);doc.text('Detailed Data',14,y);y+=6;doc.setFontSize(8);let rows=data.type==='Loan'?data.rows.slice(0,35).map(r=>`${r.i} | ${fmtDate(r.date)} | ${money(r.principal)} | ${money(r.interest)} | ${money(r.extra)} | ${money(r.balance)}`):data.data.slice(0,45).map(r=>`${r.period} | ${money(r.invested)} | ${money(r.returns)} | ${money(r.value)}`);rows.forEach(s=>{if(y>280){doc.addPage();y=15}doc.text(s,14,y);y+=4})}
+doc.save('Finova_'+data.type+'_'+new Date().toISOString().slice(0,10)+'.pdf')
+}
+function updateStats(){$('statReports').textContent=reports().length;let r=reports()[0];$('statLatest').textContent=r?(r.type==='Loan'?money(r.P):money(r.maturity)):'—'}
+function exportData(){let blob=new Blob([JSON.stringify({profile:JSON.parse(localStorage.getItem('finova_profile')||'{}'),reports:reports()},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Finova_Backup.json';a.click()}
+function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(x.profile)localStorage.setItem('finova_profile',JSON.stringify(x.profile));if(x.reports)localStorage.setItem('finova_reports',JSON.stringify(x.reports));loadProfile();renderHistory();updateStats();alert('Backup restored.')}catch(err){alert('Invalid backup file.')}};r.readAsText(f)}
+loadProfile();renderHistory();updateStats();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
